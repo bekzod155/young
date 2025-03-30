@@ -11,3 +11,10 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+/* .addModal {
+  width: 800px;
+} */
+.custom-modal .modal-dialog {
+  max-width: 800px; /* Set the desired width */
+  width: 100%; /* Ensure it scales properly on smaller screens */
+}
