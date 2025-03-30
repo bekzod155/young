@@ -11,6 +11,9 @@ import dayjs from 'dayjs';
 import 'bootstrap-icons/font/bootstrap-icons.css';
 import { useNavigate } from 'react-router-dom';
 
+const API_URL = process.env.REACT_APP_API_URL;
+
+
 function Dashboard() {
   const navigate = useNavigate();
   const [showModal, setShowModal] = useState(false);
@@ -42,7 +45,7 @@ function Dashboard() {
       return;
     }
 
-    fetch('http://localhost:4000/api/records', {
+    fetch(`${API_URL}/api/records`, {
       headers: {
         'Authorization': `Bearer ${token}`
       }
@@ -101,7 +104,7 @@ function Dashboard() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    fetch('http://localhost:4000/api/records', {
+    fetch(`${API_URL}/api/records`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(formData),
@@ -129,7 +132,7 @@ function Dashboard() {
 
   const handleEditSubmit = (e) => {
     e.preventDefault();
-    fetch(`http://localhost:4000/api/records/${editData.id}`, {
+    fetch(`${API_URL}/api/records/${editData.id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(editData),
@@ -158,7 +161,7 @@ function Dashboard() {
   const handleDeleteRecord = () => {
     if (!selectedRecord) return;
 
-    fetch(`http://localhost:4000/api/records/${selectedRecord.id}`, {
+    fetch(`${API_URL}/api/records/${selectedRecord.id}`, {
       method: 'DELETE',
     })
       .then(response => {
