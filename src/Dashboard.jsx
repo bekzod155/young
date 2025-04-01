@@ -50,11 +50,26 @@ function Dashboard() {
         'Authorization': `Bearer ${token}`
       }
     })
-      .then(response => response.json())
+      .then(response => {
+        if (response.status === 401 || response.status === 403) {
+          // Token is invalid or user is not admin
+          localStorage.removeItem('token'); // Clear invalid token
+          navigate('/admin/login');
+          throw new Error('Unauthorized access');
+        }
+        return response.json();
+      })
       .then(data => setTableData(data))
-      .catch(error => console.error('Error fetching data:', error));
-       // eslint-disable-next-line react-hooks/exhaustive-deps
-  },  []);
+      .catch(error => {
+        console.error('Error fetching data:', error);
+        if (error.message === 'Unauthorized access') {
+          toast.error("Sizda ruxsat yo'q yoki sessiya muddati tugagan!", {
+            position: "top-center",
+            autoClose: 3000,
+          });
+        }
+      });
+  }, [navigate]);
 
   const handleShowModal = () => setShowModal(true);
   const handleCloseModal = () => {
@@ -104,12 +119,26 @@ function Dashboard() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    const token = localStorage.getItem('token');
+    if (!token) {
+      navigate('/admin/login');
+      return;
+    }
+    
     fetch(`${API_URL}/api/records`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
       body: JSON.stringify(formData),
     })
       .then(response => {
+        if (response.status === 401 || response.status === 403) {
+          localStorage.removeItem('token');
+          navigate('/admin/login');
+          throw new Error('Unauthorized access');
+        }
         if (!response.ok) throw new Error('Network response was not ok');
         return response.json();
       })
@@ -123,21 +152,42 @@ function Dashboard() {
       })
       .catch(error => {
         console.error('Error adding record:', error);
-        toast.error("Ma'lumot qo'shishda xatolik yuz berdi!", {
-          position: "top-center",
-          autoClose: 3000,
-        });
+        if (error.message === 'Unauthorized access') {
+          toast.error("Sizda ruxsat yo'q yoki sessiya muddati tugagan!", {
+            position: "top-center",
+            autoClose: 3000,
+          });
+        } else {
+          toast.error("Ma'lumot qo'shishda xatolik yuz berdi!", {
+            position: "top-center",
+            autoClose: 3000,
+          });
+        }
       });
   };
 
   const handleEditSubmit = (e) => {
     e.preventDefault();
+    const token = localStorage.getItem('token');
+    if (!token) {
+      navigate('/admin/login');
+      return;
+    }
+
     fetch(`${API_URL}/api/records/${editData.id}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
       body: JSON.stringify(editData),
     })
       .then(response => {
+        if (response.status === 401 || response.status === 403) {
+          localStorage.removeItem('token');
+          navigate('/admin/login');
+          throw new Error('Unauthorized access');
+        }
         if (!response.ok) throw new Error('Network response was not ok');
         return response.json();
       })
@@ -151,29 +201,45 @@ function Dashboard() {
       })
       .catch(error => {
         console.error('Error updating record:', error);
-        toast.error("Ma'lumot yangilashda xatolik yuz berdi!", {
-          position: "top-center",
-          autoClose: 3000,
-        });
+        if (error.message === 'Unauthorized access') {
+          toast.error("Sizda ruxsat yo'q yoki sessiya muddati tugagan!", {
+            position: "top-center",
+            autoClose: 3000,
+          });
+        } else {
+          toast.error("Ma'lumot yangilashda xatolik yuz berdi!", {
+            position: "top-center",
+            autoClose: 3000,
+          });
+        }
       });
   };
 
   const handleDeleteRecord = () => {
     if (!selectedRecord) return;
+    
+    const token = localStorage.getItem('token');
+    if (!token) {
+      navigate('/admin/login');
+      return;
+    }
 
     fetch(`${API_URL}/api/records/${selectedRecord.id}`, {
       method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
     })
       .then(response => {
+        if (response.status === 401 || response.status === 403) {
+          localStorage.removeItem('token');
+          navigate('/admin/login');
+          throw new Error('Unauthorized access');
+        }
         if (!response.ok) throw new Error('Network response was not ok');
         
-        // Remove the record from the table data
         setTableData(tableData.filter(row => row.id !== selectedRecord.id));
-        
-        // Close the delete confirmation modal
         handleCloseDeleteModal();
-        
-        // Show success toast
         toast.success("Ma'lumot muvaffaqiyatli o'chirildi!", {
           position: "top-center",
           autoClose: 3000,
@@ -181,10 +247,17 @@ function Dashboard() {
       })
       .catch(error => {
         console.error('Error deleting record:', error);
-        toast.error("Ma'lumotni o'chirishda xatolik yuz berdi!", {
-          position: "top-center",
-          autoClose: 3000,
-        });
+        if (error.message === 'Unauthorized access') {
+          toast.error("Sizda ruxsat yo'q yoki sessiya muddati tugagan!", {
+            position: "top-center",
+            autoClose: 3000,
+          });
+        } else {
+          toast.error("Ma'lumotni o'chirishda xatolik yuz berdi!", {
+            position: "top-center",
+            autoClose: 3000,
+          });
+        }
       });
   };
 
