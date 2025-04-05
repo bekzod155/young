@@ -1,18 +1,21 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, } from 'react-router-dom';
 import Dashboard from './Dashboard.jsx';
-import AdminLogin from './AdminLogin.jsx';
+import UserDashboard from './UserDashboard';
+import Login from './Login.jsx';
 
 function App() {
   return (
-    <Router>
-      <div>
-        <Routes>
-          <Route path="/admin/login" element={<AdminLogin />} />
-          <Route path="/" element={<Dashboard />} />
-        </Routes>
-      </div>
-    </Router>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/admin/dashboard" element={<Dashboard />} />
+        <Route path="/user/dashboard" element={<UserDashboard />} />
+        <Route path="/" element={<Login/>} />
+        {/* Redirect old login paths to the main login page */}
+        <Route path="/admin/login" element={<Login />} />
+        <Route path="/user/login" element={<Login />} />
+      </Routes>
+    </BrowserRouter>
   );
 }
 

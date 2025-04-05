@@ -10,12 +10,11 @@ import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import dayjs from 'dayjs';
 import 'bootstrap-icons/font/bootstrap-icons.css';
 import { useNavigate } from 'react-router-dom';
-import Select from 'react-select';
 
 const API_URL = process.env.REACT_APP_API_URL;
 
 
-function Dashboard() {
+function UserDashboard() {
   const navigate = useNavigate();
   const [showModal, setShowModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -50,33 +49,31 @@ function Dashboard() {
     password: ''
   });
   const [editingEmployee, setEditingEmployee] = useState(null);
-  const [employeeOptions, setEmployeeOptions] = useState([]);
 
   // Add new state for image upload
   const [selectedFile, setSelectedFile] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
 
-  // Add new state for employee filter
-  const [employeeFilter, setEmployeeFilter] = useState(null);
-
   useEffect(() => {
-    const token = localStorage.getItem('adminToken');
-    if (!token) {
-      navigate('/admin/login');
+    const token = localStorage.getItem('employeeToken');
+    const userData = JSON.parse(localStorage.getItem('userData'));
+    
+    if (!token || !userData) {
+      navigate('/user/login');
       return;
     }
 
-    fetch(`${API_URL}/api/admin/records`, {
+    fetch(`${API_URL}/api/user/records`, {
       headers: {
         'Authorization': `Bearer ${token}`
       }
     })
       .then(response => {
         if (response.status === 401 || response.status === 403) {
-          // Token is invalid or user is not admin
-          localStorage.removeItem('token'); // Clear invalid token
-          navigate('/admin/login');
+          localStorage.removeItem('employeeToken');
+          localStorage.removeItem('userData');
+          navigate('/user/login');
           throw new Error('Unauthorized access');
         }
         return response.json();
@@ -85,40 +82,10 @@ function Dashboard() {
       .catch(error => {
         console.error('Error fetching data:', error);
         if (error.message === 'Unauthorized access') {
-          toast.error("Sizda ruxsat yo'q yoki sessiya muddati tugagan!", {
-            position: "top-center",
-            autoClose: 3000,
-          });
+          toast.error("Sizda ruxsat yo'q yoki sessiya muddati tugagan!");
         }
       });
   }, [navigate]);
-
-  useEffect(() => {
-    fetchEmployeeOptions();
-  }, []);
-
-  const fetchEmployeeOptions = async () => {
-    const token = localStorage.getItem('adminToken');
-    try {
-      const response = await fetch(`${API_URL}/api/employees`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      if (response.ok) {
-        const employees = await response.json();
-        // Transform employees data into react-select format
-        const options = employees.map(emp => ({
-          value: emp.name,
-          label: emp.name
-        }));
-        setEmployeeOptions(options);
-      }
-    } catch (error) {
-      console.error('Error fetching employees:', error);
-      toast.error("Xodimlar ro'yxatini yuklashda xatolik yuz berdi!");
-    }
-  };
 
   const handleShowModal = () => setShowModal(true);
   const handleCloseModal = () => {
@@ -157,11 +124,8 @@ function Dashboard() {
   };
 
   const handleInputChange = (e) => {
-    if (e && e.target) {
-      // Handle regular input changes
-      const { name, value } = e.target;
-      setFormData({ ...formData, [name]: value });
-    }
+    const { name, value } = e.target;
+    setFormData({ ...formData, [name]: value });
   };
 
   const handleEditInputChange = (e) => {
@@ -169,155 +133,117 @@ function Dashboard() {
     setEditData({ ...editData, [name]: value });
   };
 
-  const handleSelectChange = (selectedOption) => {
-    setFormData({ 
-      ...formData, 
-      biriktirilganXodim: selectedOption ? selectedOption.value : ''
-    });
-  };
-
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    const token = localStorage.getItem('adminToken');
-    if (!token) {
-      navigate('/admin/login');
-      return;
-    }
+    const token = localStorage.getItem('employeeToken');
+    const userData = JSON.parse(localStorage.getItem('userData'));
     
-    fetch(`${API_URL}/api/records`, {
-      method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify(formData),
-    })
-      .then(response => {
-        if (response.status === 401 || response.status === 403) {
-          localStorage.removeItem('adminToken');
-          navigate('/admin/login');
-          throw new Error('Unauthorized access');
-        }
-        if (!response.ok) throw new Error('Network response was not ok');
-        return response.json();
-      })
-      .then(newRecord => {
-        setTableData([...tableData, newRecord]);
-        handleCloseModal();
-        toast.success("Ma'lumot muvaffaqiyatli qo'shildi!", {
-          position: "top-center",
-          autoClose: 3000,
-        });
-      })
-      .catch(error => {
-        console.error('Error adding record:', error);
-        if (error.message === 'Unauthorized access') {
-          toast.error("Sizda ruxsat yo'q yoki sessiya muddati tugagan!", {
-            position: "top-center",
-            autoClose: 3000,
-          });
-        } else {
-          toast.error("Ma'lumot qo'shishda xatolik yuz berdi!", {
-            position: "top-center",
-            autoClose: 3000,
-          });
-        }
-      });
-  };
-
-  const handleEditSubmit = (e) => {
-    e.preventDefault();
-    const token = localStorage.getItem('adminToken');
-    if (!token) {
-      navigate('/admin/login');
+    if (!token || !userData) {
+      navigate('/user/login');
       return;
     }
 
-    fetch(`${API_URL}/api/records/${editData.id}`, {
-      method: 'PUT',
-      headers: { 
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify(editData),
-    })
-      .then(response => {
-        if (response.status === 401 || response.status === 403) {
-          localStorage.removeItem('adminToken');
-          navigate('/admin/login');
-          throw new Error('Unauthorized access');
-        }
-        if (!response.ok) throw new Error('Network response was not ok');
-        return response.json();
-      })
-      .then(updatedRecord => {
-        setTableData(tableData.map(row => (row.id === updatedRecord.id ? updatedRecord : row)));
-        handleCloseEditModal();
-        toast.success("Ma'lumot muvaffaqiyatli yangilandi!", {
-          position: "top-center",
-          autoClose: 3000,
-        });
-      })
-      .catch(error => {
-        console.error('Error updating record:', error);
-        if (error.message === 'Unauthorized access') {
-          toast.error("Sizda ruxsat yo'q yoki sessiya muddati tugagan!", {
-            position: "top-center",
-            autoClose: 3000,
-          });
-        } else {
-          toast.error("Ma'lumot yangilashda xatolik yuz berdi!", {
-            position: "top-center",
-            autoClose: 3000,
-          });
-        }
+    try {
+      const response = await fetch(`${API_URL}/api/user/records`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          ...formData,
+          biriktirilganXodim: userData.name // Automatically set the employee name
+        })
       });
-  };
 
-  const handleDeleteRecord = () => {
-    if (!selectedRecord) return;
-    
-    const token = localStorage.getItem('adminToken');
-    if (!token) {
-      navigate('/admin/login');
-      return;
-    }
-
-    fetch(`${API_URL}/api/records/${selectedRecord.id}`, {
-      method: 'DELETE',
-      headers: {
-        'Authorization': `Bearer ${token}`
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to add record');
       }
-    })
-      .then(response => {
-        if (response.status === 401 || response.status === 403) {
-          localStorage.removeItem('adminToken');
-          navigate('/admin/login');
-          throw new Error('Unauthorized access');
-        }
-        if (!response.ok) throw new Error('Network response was not ok');
-        
-        setTableData(tableData.filter(row => row.id !== selectedRecord.id));
-        handleCloseDeleteModal();
-        toast.success("Ma'lumot muvaffaqiyatli o'chirildi!", {
-          position: "top-center",
-          autoClose: 3000,
-        });
-      })
-      .catch(error => {
-        console.error('Error deleting record:', error);
-        if (error.message === 'Unauthorized access') {
-          toast.error("Sizda ruxsat yo'q yoki sessiya muddati tugagan!", {
-            position: "top-center",
-            autoClose: 3000,
-          });
-        } else {
-          toast.error("Ma'lumotni o'chirishda xatolik yuz berdi!", {
-            position: "top-center",
-            autoClose: 3000,
-          });
+
+      const newRecord = await response.json();
+      setTableData(prevData => [...prevData, newRecord]);
+      handleCloseModal();
+      toast.success("Ma'lumot muvaffaqiyatli qo'shildi!");
+      setFormData({
+        mahallaNomi: '',
+        ismFamilya: '',
+        pasportSeriyasi: '',
+        telefonRaqam: '',
+        tugilganSanasi: '',
+        malumotMutahassislik: '',
+        qiziqishlari: '',
+        amalgaOshirganIshi: '',
+      });
+    } catch (error) {
+      console.error('Error adding record:', error);
+      toast.error(error.message || "Ma'lumot qo'shishda xatolik yuz berdi!");
+    }
+  };
+
+  const handleEditSubmit = async (e) => {
+    e.preventDefault();
+    const token = localStorage.getItem('employeeToken');
+    const userData = JSON.parse(localStorage.getItem('userData'));
+
+    if (!token || !userData) {
+      navigate('/user/login');
+      return;
+    }
+
+    try {
+      const response = await fetch(`${API_URL}/api/user/records/${editData.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          ...editData,
+          biriktirilganXodim: userData.name // Ensure the employee name stays consistent
+        })
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to update record');
+      }
+
+      const updatedRecord = await response.json();
+      setTableData(prevData => 
+        prevData.map(record => record.id === updatedRecord.id ? updatedRecord : record)
+      );
+      handleCloseEditModal();
+      toast.success("Ma'lumot muvaffaqiyatli yangilandi!");
+    } catch (error) {
+      console.error('Error updating record:', error);
+      toast.error(error.message || "Ma'lumotni yangilashda xatolik yuz berdi!");
+    }
+  };
+
+  const handleDeleteRecord = async () => {
+    const token = localStorage.getItem('employeeToken');
+
+    try {
+      const response = await fetch(`${API_URL}/api/user/records/${selectedRecord.id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
         }
       });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to delete record');
+      }
+      
+      setTableData(prev => prev.filter(record => record.id !== selectedRecord.id));
+      handleCloseDeleteModal();
+      toast.success("Ma'lumot muvaffaqiyatli o'chirildi!");
+    } catch (error) {
+      console.error('Error deleting record:', error);
+      toast.error(error.message || "Ma'lumotni o'chirishda xatolik yuz berdi!");
+    }
   };
 
   const handleFilterClick = (filter) => {
@@ -335,10 +261,6 @@ function Dashboard() {
     // Then apply search filter if there's a search query
     const searchMatch = !searchQuery || 
       record.ismFamilya.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    // Add employee filter
-    const employeeMatch = !employeeFilter || 
-      record.biriktirilganXodim === employeeFilter.value;
     
     // Then apply date filter
     let dateMatch = true;
@@ -375,7 +297,7 @@ function Dashboard() {
       dateMatch = recordDate.isAfter(startDate.subtract(1, 'day')) && recordDate.isBefore(endDate.add(1, 'day'));
     }
     
-    return statusMatch && searchMatch && dateMatch && employeeMatch;
+    return statusMatch && searchMatch && dateMatch;
   });
 
   const getTableTitle = () => {
@@ -404,9 +326,9 @@ function Dashboard() {
   };
 
   const fetchImages = async (recordId) => {
-    const token = localStorage.getItem('adminToken');
+    const token = localStorage.getItem('employeeToken');
     try {
-      const response = await fetch(`${API_URL}/api/records/${recordId}/images`, {
+      const response = await fetch(`${API_URL}/api/user/records/${recordId}/images`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -431,7 +353,7 @@ function Dashboard() {
   const handleImageUpload = async () => {
     if (!selectedFile || !selectedRecord) return;
 
-    const token = localStorage.getItem('adminToken');
+    const token = localStorage.getItem('employeeToken');
     const reader = new FileReader();
     
     reader.onload = async () => {
@@ -439,7 +361,7 @@ function Dashboard() {
       setUploading(true);
       
       try {
-        const response = await fetch(`${API_URL}/api/records/${selectedRecord.id}/images`, {
+        const response = await fetch(`${API_URL}/api/user/records/${selectedRecord.id}/images`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -448,13 +370,13 @@ function Dashboard() {
           body: JSON.stringify({ imageData: base64Data })
         });
 
-        if (response.ok) {
-          toast.success("Rasm muvaffaqiyatli yuklandi!");
-          fetchImages(selectedRecord.id);
-          setSelectedFile(null);
-        } else {
+        if (!response.ok) {
           throw new Error('Upload failed');
         }
+
+        toast.success("Rasm muvaffaqiyatli yuklandi!");
+        fetchImages(selectedRecord.id);
+        setSelectedFile(null);
       } catch (error) {
         console.error('Error uploading image:', error);
         toast.error("Rasmni yuklashda xatolik yuz berdi!");
@@ -467,21 +389,21 @@ function Dashboard() {
   };
 
   const handleDeleteImage = async (imageId) => {
-    const token = localStorage.getItem('adminToken');
+    const token = localStorage.getItem('employeeToken');
     try {
-      const response = await fetch(`${API_URL}/api/images/${imageId}`, {
+      const response = await fetch(`${API_URL}/api/user/images/${imageId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
         }
       });
 
-      if (response.ok) {
-        toast.success("Rasm muvaffaqiyatli o'chirildi!");
-        fetchImages(selectedRecord.id);
-      } else {
+      if (!response.ok) {
         throw new Error('Delete failed');
       }
+
+      toast.success("Rasm muvaffaqiyatli o'chirildi!");
+      fetchImages(selectedRecord.id);
     } catch (error) {
       console.error('Error deleting image:', error);
       toast.error("Rasmni o'chirishda xatolik yuz berdi!");
@@ -500,11 +422,6 @@ function Dashboard() {
   };
 
   // Add new handlers for employee management
-  const handleShowEmployeeModal = () => {
-    setShowEmployeeModal(true);
-    fetchEmployees();
-  };
-
   const handleCloseEmployeeModal = () => {
     setShowEmployeeModal(false);
     setEmployeeForm({
@@ -515,9 +432,9 @@ function Dashboard() {
   };
 
   const fetchEmployees = async () => {
-    const token = localStorage.getItem('adminToken');
+    const token = localStorage.getItem('employeeToken');
     try {
-      const response = await fetch(`${API_URL}/api/employees`, {
+      const response = await fetch(`${API_URL}/api/employee/employees`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -542,10 +459,10 @@ function Dashboard() {
 
   const handleAddEmployee = async (e) => {
     e.preventDefault();
-    const token = localStorage.getItem('adminToken');
+    const token = localStorage.getItem('employeeToken');
     
     try {
-      const response = await fetch(`${API_URL}/api/employees`, {
+      const response = await fetch(`${API_URL}/api/employee/employees`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -554,18 +471,18 @@ function Dashboard() {
         body: JSON.stringify(employeeForm)
       });
 
-      if (!response.ok) {
+      if (response.ok) {
+        toast.success("Xodim muvaffaqiyatli qo'shildi!");
+        setEmployeeForm({
+          name: '',
+          login: '',
+          password: ''
+        });
+        fetchEmployees();
+      } else {
         const error = await response.json();
         throw new Error(error.error || 'Failed to add employee');
       }
-
-      toast.success("Xodim muvaffaqiyatli qo'shildi!");
-      setEmployeeForm({
-        name: '',
-        login: '',
-        password: ''
-      });
-      fetchEmployees();
     } catch (error) {
       console.error('Error adding employee:', error);
       toast.error(error.message || "Xodim qo'shishda xatolik yuz berdi!");
@@ -573,9 +490,9 @@ function Dashboard() {
   };
 
   const handleDeleteEmployee = async (employeeId) => {
-    const token = localStorage.getItem('adminToken');
+    const token = localStorage.getItem('employeeToken');
     try {
-      const response = await fetch(`${API_URL}/api/employees/${employeeId}`, {
+      const response = await fetch(`${API_URL}/api/employee/employees/${employeeId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -606,10 +523,10 @@ function Dashboard() {
 
   const handleEmployeeEditSubmit = async (e) => {
     e.preventDefault();
-    const token = localStorage.getItem('adminToken');
+    const token = localStorage.getItem('employeeToken');
     
     try {
-      const response = await fetch(`${API_URL}/api/employees/${editingEmployee.id}`, {
+      const response = await fetch(`${API_URL}/api/employee/employees/${editingEmployee.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -618,23 +535,18 @@ function Dashboard() {
         body: JSON.stringify(editingEmployee)
       });
 
-      if (!response.ok) {
+      if (response.ok) {
+        toast.success("Xodim muvaffaqiyatli yangilandi!");
+        handleCloseEmployeeEditModal();
+        fetchEmployees();
+      } else {
         const error = await response.json();
         throw new Error(error.error || 'Failed to update employee');
       }
-
-      toast.success("Xodim muvaffaqiyatli yangilandi!");
-      handleCloseEmployeeEditModal();
-      fetchEmployees();
     } catch (error) {
       console.error('Error updating employee:', error);
       toast.error(error.message || "Xodimni yangilashda xatolik yuz berdi!");
     }
-  };
-
-  // Add handler for employee filter change
-  const handleEmployeeFilterChange = (selectedOption) => {
-    setEmployeeFilter(selectedOption);
   };
 
   return (
@@ -728,7 +640,6 @@ function Dashboard() {
       <Row className="mb-3 align-items-between justify-content-between">
         <Col md={4}>
           <Button onClick={handleShowModal}>QO`SHISH</Button>
-          <Button className='ms-2' onClick={handleShowEmployeeModal}>HODIM Q`SHISH</Button>
         </Col>
 
         <Col md={4}>
@@ -741,18 +652,6 @@ function Dashboard() {
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </Form>
-        </Col>
-
-        <Col md={4}>
-          <Select
-            value={employeeFilter}
-            onChange={handleEmployeeFilterChange}
-            options={employeeOptions}
-            isClearable
-            isSearchable
-            placeholder="Xodim bo'yicha filtrlash..."
-            noOptionsMessage={() => "Xodim topilmadi"}
-          />
         </Col>
       </Row>
       <Row>
@@ -905,14 +804,12 @@ function Dashboard() {
               <Col md={4}>
                 <Form.Group controlId="biriktirilganXodim">
                   <Form.Label>Biriktirilgan xodim</Form.Label>
-                  <Select
-                    value={employeeOptions.find(option => option.value === formData.biriktirilganXodim)}
-                    onChange={handleSelectChange}
-                    options={employeeOptions}
-                    isClearable
-                    isSearchable
-                    placeholder="Xodimni tanlang..."
-                    noOptionsMessage={() => "Xodim topilmadi"}
+                  <Form.Control
+                    type="text"
+                    name="biriktirilganXodim"
+                    value={JSON.parse(localStorage.getItem('userData'))?.name || ''}
+                    disabled
+                    required
                   />
                 </Form.Group>
               </Col>
@@ -1041,14 +938,12 @@ function Dashboard() {
                 <Col md={4}>
                   <Form.Group controlId="biriktirilganXodim">
                     <Form.Label>Biriktirilgan xodim</Form.Label>
-                    <Select
-                      value={employeeOptions.find(option => option.value === editData.biriktirilganXodim)}
-                      onChange={(selectedOption) => handleEditInputChange({ target: { name: 'biriktirilganXodim', value: selectedOption ? selectedOption.value : '' } })}
-                      options={employeeOptions}
-                      isClearable
-                      isSearchable
-                      placeholder="Xodimni tanlang..."
-                      noOptionsMessage={() => "Xodim topilmadi"}
+                    <Form.Control
+                      type="text"
+                      name="biriktirilganXodim"
+                      value={editData.biriktirilganXodim}
+                      disabled
+                      required
                     />
                   </Form.Group>
                 </Col>
@@ -1370,4 +1265,4 @@ function Dashboard() {
   );
 }
 
-export default Dashboard;
+export default UserDashboard;
