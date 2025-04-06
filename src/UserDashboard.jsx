@@ -10,6 +10,7 @@ import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import dayjs from 'dayjs';
 import 'bootstrap-icons/font/bootstrap-icons.css';
 import { useNavigate } from 'react-router-dom';
+import * as XLSX from 'xlsx';
 
 const API_URL = process.env.REACT_APP_API_URL;
 
@@ -54,6 +55,7 @@ function UserDashboard() {
   const [selectedFile, setSelectedFile] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [imageDescription, setImageDescription] = useState('');
 
   useEffect(() => {
     const token = localStorage.getItem('employeeToken');
@@ -323,6 +325,7 @@ function UserDashboard() {
     setSelectedRecord(null);
     setSelectedImages([]);
     setSelectedFile(null);
+    setImageDescription('');
   };
 
   const fetchImages = async (recordId) => {
@@ -367,7 +370,10 @@ function UserDashboard() {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`
           },
-          body: JSON.stringify({ imageData: base64Data })
+          body: JSON.stringify({ 
+            imageData: base64Data,
+            description: imageDescription
+          })
         });
 
         if (!response.ok) {
@@ -377,6 +383,7 @@ function UserDashboard() {
         toast.success("Rasm muvaffaqiyatli yuklandi!");
         fetchImages(selectedRecord.id);
         setSelectedFile(null);
+        setImageDescription('');
       } catch (error) {
         console.error('Error uploading image:', error);
         toast.error("Rasmni yuklashda xatolik yuz berdi!");
@@ -549,6 +556,32 @@ function UserDashboard() {
     }
   };
 
+  const downloadExcel = () => {
+    // Prepare the data for Excel
+    const excelData = filteredTableData.map(row => ({
+      'Yoshning manzili': row.mahallaNomi,
+      'Yoshning F.I.O': row.ismFamilya,
+      'Pasport seriyasi va raqami': row.pasportSeriyasi,
+      'Telefon raqam': row.telefonRaqam,
+      'Tug\'ilgan sanasi': row.tugilganSanasi,
+      'Ma\'lumoti va mutahassislik': row.malumotMutahassislik,
+      'Taklifi yoki qiziqishlari': row.qiziqishlari,
+      'Amalga oshirgan ishi': row.amalgaOshirganIshi,
+      'Biriktirilgan rahbar F.I.O': row.biriktirilganXodim,
+      'Status': row.status
+    }));
+
+    // Create a new workbook
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(excelData);
+
+    // Add the worksheet to the workbook
+    XLSX.utils.book_append_sheet(wb, ws, 'Murojatlar');
+
+    // Generate Excel file and trigger download
+    XLSX.writeFile(wb, 'murojatlar.xlsx');
+  };
+
   return (
     <Container className="my-4">
       <ToastContainer />
@@ -640,6 +673,10 @@ function UserDashboard() {
       <Row className="mb-3 align-items-between justify-content-between">
         <Col md={4}>
           <Button onClick={handleShowModal}>QO`SHISH</Button>
+          <Button className='ms-2' id='download-excel' variant="success" onClick={downloadExcel}>
+            <i className="bi bi-file-earmark-excel me-1"></i>
+            Excel
+          </Button>
         </Col>
 
         <Col md={4}>
@@ -1041,6 +1078,15 @@ function UserDashboard() {
                 onChange={handleFileSelect}
               />
             </Form.Group>
+            <Form.Group className="mt-2">
+              <Form.Label>Rasm tavsifi</Form.Label>
+              <Form.Control
+                type="text"
+                placeholder="Rasm haqida ma'lumot kiriting"
+                value={imageDescription}
+                onChange={(e) => setImageDescription(e.target.value)}
+              />
+            </Form.Group>
             <Button 
               variant="primary" 
               onClick={handleImageUpload}
@@ -1062,6 +1108,11 @@ function UserDashboard() {
                     onClick={() => handleShowCarousel(index)}
                   />
                   <Card.Body>
+                    {image.description && (
+                      <Card.Text className="mb-2">
+                        <strong>Tavsif:</strong> {image.description}
+                      </Card.Text>
+                    )}
                     <Button 
                       variant="danger" 
                       size="sm"
@@ -1117,6 +1168,12 @@ function UserDashboard() {
               </Carousel.Item>
             ))}
           </Carousel>
+          {selectedImages[selectedImageIndex]?.description && (
+            <div className="p-3 bg-light">
+              <h5>Tavsif:</h5>
+              <p>{selectedImages[selectedImageIndex].description}</p>
+            </div>
+          )}
         </Modal.Body>
       </Modal>
 
