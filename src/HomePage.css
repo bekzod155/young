@@ -1,0 +1,56 @@
+.home-container {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.background-video {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  min-width: 100%;
+  min-height: 100%;
+  width: auto;
+  height: auto;
+  transform: translateX(-50%) translateY(-50%);
+  z-index: -1;
+}
+
+.content {
+  position: relative;
+  z-index: 1;
+  color: white;
+  text-align: center;
+  padding-top: 20vh;
+}
+
+h1, p {
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+}
+
+.btn {
+  margin: 10px;
+}
+
+.top-left-button {
+  position: absolute;
+  top: 15px;
+  right: 20px;
+  z-index: 2;
+}
+
+.rounded-image {
+  width: 300px;
+  border-radius: 15px;
+  border: 2px solid #fff;
+  box-shadow: rgba(0, 0, 0, 0.35) 0px 5px 15px;
+}
+
+.animated-title {
+  display: inline-block;
+}
+
+.animated-image {
+  display: inline-block;
+}
